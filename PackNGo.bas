@@ -253,8 +253,9 @@ Private Sub LogPackNGo(ByVal jobNum As String, _
     Dim fso As Object
     On Error Resume Next
     Set fso = CreateObject("Scripting.FileSystemObject")
-    If Not fso.FolderExists(LOG_DIR) Then fso.CreateFolder LOG_DIR
     On Error GoTo 0
+
+    EnsureFolder LOG_DIR
 
     Dim xlApp As Object, wb As Object, ws As Object
     Dim isNew As Boolean
