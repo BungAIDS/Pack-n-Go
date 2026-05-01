@@ -11,9 +11,9 @@ Private Const ACAD_ROOT    As String = "Z:\AUTOCAD\CURRENT\JOBS\"
 Private Const DOC_MARKER   As String = "See file path below for original files."
 Private Const SHORTCUT_BAT As String = "Z:\DAG\SOLIDWORKS-AUTOCAD JOB FOLDER\RunJobShortcut.bat"
 
-Private Const LOG_DIR      As String = "Z:\DAG\Logs\PackNGo\"
-Private Const LOG_XLSX     As String = "Z:\DAG\Logs\PackNGo\PackNGo_Log.xlsx"
-Private Const LOG_OVERFLOW As String = "Z:\DAG\Logs\PackNGo\PackNGo_Log_Overflow.csv"
+Private Const LOG_DIR      As String = "Z:\DAG\SOLIDWORKS MACRO\Pack'n'Go\Log\"
+Private Const LOG_XLSX     As String = "Z:\DAG\SOLIDWORKS MACRO\Pack'n'Go\Log\PackNGo_Log.xlsx"
+Private Const LOG_OVERFLOW As String = "Z:\DAG\SOLIDWORKS MACRO\Pack'n'Go\Log\PackNGo_Log_Overflow.csv"
 Private Const HEADER_ROW   As Long = 3
 Private Const DATA_START   As Long = 4
 
