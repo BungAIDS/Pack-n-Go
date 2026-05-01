@@ -1,4 +1,3 @@
-Attribute VB_Name = "PackNGo"
 Option Explicit
 
 ' PackNGo.bas - SolidWorks VBA macro
