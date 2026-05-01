@@ -308,7 +308,9 @@ Public Sub main()
 
     RunShortcutBat acadJobFolder
 
+    Shell "explorer.exe """ & destFolder & """", vbNormalFocus
+
     MsgBox "Pack-and-Go complete." & vbCrLf & _
            "Drawing: " & drawingBase & ".SLDDRW" & vbCrLf & _
-           "Destination: " & destFolder, vbInformation
+           "Destination: " & destFolder, vbInformation + vbSystemModal
 End Sub
