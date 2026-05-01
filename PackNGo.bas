@@ -11,6 +11,12 @@ Private Const ACAD_ROOT    As String = "Z:\AUTOCAD\CURRENT\JOBS\"
 Private Const DOC_MARKER   As String = "See file path below for original files."
 Private Const SHORTCUT_BAT As String = "Z:\DAG\SOLIDWORKS-AUTOCAD JOB FOLDER\RunJobShortcut.bat"
 
+Private Const LOG_DIR      As String = "Z:\DAG\Logs\PackNGo\"
+Private Const LOG_XLSX     As String = "Z:\DAG\Logs\PackNGo\PackNGo_Log.xlsx"
+Private Const LOG_OVERFLOW As String = "Z:\DAG\Logs\PackNGo\PackNGo_Log_Overflow.csv"
+Private Const HEADER_ROW   As Long = 3
+Private Const DATA_START   As Long = 4
+
 ' SolidWorks folder name -> AutoCAD folder name
 Private Function MapAcadFolder(swType As String) As String
     Select Case UCase$(swType)
@@ -228,15 +234,6 @@ Private Function ResolveDestination(swJobFolder As String, drawingBase As String
     If Not FolderExists(candidate) Then MkDir candidate
     ResolveDestination = candidate
 End Function
-
-' ============================================================
-' Run logging
-' ============================================================
-Private Const LOG_DIR      As String = "Z:\DAG\Logs\PackNGo\"
-Private Const LOG_XLSX     As String = "Z:\DAG\Logs\PackNGo\PackNGo_Log.xlsx"
-Private Const LOG_OVERFLOW As String = "Z:\DAG\Logs\PackNGo\PackNGo_Log_Overflow.csv"
-Private Const HEADER_ROW   As Long = 3
-Private Const DATA_START   As Long = 4
 
 ' Logs one Pack-n-Go run to PackNGo_Log.xlsx, falling through to a CSV
 ' overflow file if the workbook is locked or Excel is unavailable.
