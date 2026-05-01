@@ -21,10 +21,21 @@ Private Function MapAcadFolder(swType As String) As String
     End Select
 End Function
 
-Private Function ComputeIntermediate(swType As String, jobNum As String) As String
+' AutoCAD folder name -> SolidWorks folder name
+Private Function MapSwFolder(acadType As String) As String
+    Select Case UCase$(acadType)
+        Case "GENERAL LINE": MapSwFolder = "GENERAL LINE"
+        Case "HD-PFD-IAF":   MapSwFolder = "HD-PFD"
+        Case "HDX":          MapSwFolder = "HDX"
+        Case "AXIAL":        MapSwFolder = "AXIAL"
+        Case Else:           MapSwFolder = ""
+    End Select
+End Function
+
+Private Function ComputeIntermediate(jobType As String, jobNum As String) As String
     Dim prefix As Long
     prefix = CLng(Left$(jobNum, 3))
-    If UCase$(swType) = "HDX" Then
+    If UCase$(jobType) = "HDX" Then
         Dim n As Long, startN As Long, endN As Long
         n = -Int(-prefix / 5)               ' ceil(prefix / 5)
         startN = 5 * (n - 1) + 1
@@ -57,23 +68,37 @@ Private Function NormalizeFolder(p As String) As String
     If Right$(NormalizeFolder, 1) <> "\" Then NormalizeFolder = NormalizeFolder & "\"
 End Function
 
-' Probes every job-type folder; returns the type that contains <jobNum>
-' and writes the matching SW job folder path to swJobFolder.
-Private Function FindSwJobType(jobNum As String, ByRef swJobFolder As String) As String
-    Dim types As Variant
-    types = Array("GENERAL LINE", "HD-PFD", "HDX", "AXIAL")
+' Probes every AutoCAD job-type folder; returns the type that contains
+' <jobNum> and writes the matching AutoCAD job folder path to acadJobFolder.
+Private Function FindAcadJobType(jobNum As String, ByRef acadJobFolder As String) As String
+    Dim acadTypes As Variant
+    acadTypes = Array("GENERAL LINE", "HD-PFD-IAF", "HDX", "AXIAL")
     Dim i As Long, candidate As String, intermediate As String
-    For i = LBound(types) To UBound(types)
-        intermediate = ComputeIntermediate(CStr(types(i)), jobNum)
-        candidate = SW_ROOT & types(i) & "\" & intermediate & "\" & jobNum & "\"
+    For i = LBound(acadTypes) To UBound(acadTypes)
+        intermediate = ComputeIntermediate(CStr(acadTypes(i)), jobNum)
+        candidate = ACAD_ROOT & acadTypes(i) & "\" & intermediate & "\" & jobNum & "\"
         If FolderExists(candidate) Then
-            FindSwJobType = CStr(types(i))
-            swJobFolder = candidate
+            FindAcadJobType = CStr(acadTypes(i))
+            acadJobFolder = candidate
             Exit Function
         End If
     Next i
-    FindSwJobType = ""
+    FindAcadJobType = ""
 End Function
+
+' Recursively creates a folder (and any missing parents).
+Private Sub EnsureFolder(p As String)
+    Dim folder As String: folder = NormalizeFolder(p)
+    If FolderExists(folder) Then Exit Sub
+
+    Dim trimmed As String: trimmed = Left$(folder, Len(folder) - 1)
+    Dim lastSlash As Long: lastSlash = InStrRev(trimmed, "\")
+    If lastSlash > 0 Then EnsureFolder Left$(trimmed, lastSlash)
+
+    On Error Resume Next
+    MkDir folder
+    On Error GoTo 0
+End Sub
 
 ' Opens the Eng Ref doc, finds the marker line, returns the next non-empty paragraph.
 Private Function ReadSourcePathFromDoc(docPath As String) As String
@@ -174,19 +199,23 @@ Public Sub main()
         Exit Sub
     End If
 
-    Dim swJobFolder As String, swType As String
-    swType = FindSwJobType(jobNum, swJobFolder)
-    If Len(swType) = 0 Then
-        MsgBox "No SolidWorks job folder found for job " & jobNum & "." & vbCrLf & _
-               "Searched all type folders under " & SW_ROOT, vbExclamation
+    ' AutoCAD folder is the authoritative source; probe it to determine type.
+    Dim acadJobFolder As String, acadType As String
+    acadType = FindAcadJobType(jobNum, acadJobFolder)
+    If Len(acadType) = 0 Then
+        MsgBox "No AutoCAD job folder found for job " & jobNum & "." & vbCrLf & _
+               "Searched all type folders under " & ACAD_ROOT, vbExclamation
         Exit Sub
     End If
 
-    Dim acadJobFolder As String
-    acadJobFolder = ACAD_ROOT & MapAcadFolder(swType) & "\" & _
-                    ComputeIntermediate(swType, jobNum) & "\" & jobNum & "\"
-    If Not FolderExists(acadJobFolder) Then
-        MsgBox "AutoCAD job folder not found:" & vbCrLf & acadJobFolder, vbExclamation
+    ' Build SW job folder path (creating it if missing).
+    Dim swJobFolder As String, swType As String
+    swType = MapSwFolder(acadType)
+    swJobFolder = SW_ROOT & swType & "\" & _
+                  ComputeIntermediate(acadType, jobNum) & "\" & jobNum & "\"
+    EnsureFolder swJobFolder
+    If Not FolderExists(swJobFolder) Then
+        MsgBox "Could not create SolidWorks job folder:" & vbCrLf & swJobFolder, vbExclamation
         Exit Sub
     End If
 
