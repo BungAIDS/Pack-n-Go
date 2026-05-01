@@ -32,22 +32,36 @@ Private Function MapSwFolder(acadType As String) As String
     End Select
 End Function
 
-Private Function ComputeIntermediate(jobType As String, jobNum As String) As String
-    Dim prefix As Long
-    prefix = CLng(Left$(jobNum, 3))
-    If UCase$(jobType) = "HDX" Then
-        Dim n As Long, startN As Long, endN As Long
-        n = -Int(-prefix / 5)               ' ceil(prefix / 5)
-        startN = 5 * (n - 1) + 1
-        endN = 5 * n
-        ' 401-405 is rolled into the 400-405 folder
-        If startN = 401 And endN = 405 Then
-            ComputeIntermediate = "400-405"
-        Else
-            ComputeIntermediate = startN & "-" & endN
-        End If
+' Range folder name based on first 3 digits, in groups of 5.
+' Special case: 401-405 is rolled into "400-405".
+Private Function ComputeRangeFolder(jobNum As String) As String
+    Dim prefix As Long: prefix = CLng(Left$(jobNum, 3))
+    Dim n As Long:      n = -Int(-prefix / 5)               ' ceil(prefix / 5)
+    Dim startN As Long: startN = 5 * (n - 1) + 1
+    Dim endN As Long:   endN = 5 * n
+    If startN = 401 And endN = 405 Then
+        ComputeRangeFolder = "400-405"
     Else
-        ComputeIntermediate = CStr(prefix)
+        ComputeRangeFolder = startN & "-" & endN
+    End If
+End Function
+
+' AutoCAD intermediate: HDX -> range folder; everyone else -> first 3 digits.
+Private Function ComputeAcadIntermediate(acadType As String, jobNum As String) As String
+    If UCase$(acadType) = "HDX" Then
+        ComputeAcadIntermediate = ComputeRangeFolder(jobNum)
+    Else
+        ComputeAcadIntermediate = Left$(jobNum, 3)
+    End If
+End Function
+
+' SolidWorks intermediate: HD-PFD lives in a single "40XXXX" bucket;
+' everyone else uses a range folder on the first 3 digits.
+Private Function ComputeSwIntermediate(swType As String, jobNum As String) As String
+    If UCase$(swType) = "HD-PFD" Then
+        ComputeSwIntermediate = "40XXXX"
+    Else
+        ComputeSwIntermediate = ComputeRangeFolder(jobNum)
     End If
 End Function
 
@@ -75,7 +89,7 @@ Private Function FindAcadJobType(jobNum As String, ByRef acadJobFolder As String
     acadTypes = Array("GENERAL LINE", "HD-PFD-IAF", "HDX", "AXIAL")
     Dim i As Long, candidate As String, intermediate As String
     For i = LBound(acadTypes) To UBound(acadTypes)
-        intermediate = ComputeIntermediate(CStr(acadTypes(i)), jobNum)
+        intermediate = ComputeAcadIntermediate(CStr(acadTypes(i)), jobNum)
         candidate = ACAD_ROOT & acadTypes(i) & "\" & intermediate & "\" & jobNum & "\"
         If FolderExists(candidate) Then
             FindAcadJobType = CStr(acadTypes(i))
@@ -212,7 +226,7 @@ Public Sub main()
     Dim swJobFolder As String, swType As String
     swType = MapSwFolder(acadType)
     swJobFolder = SW_ROOT & swType & "\" & _
-                  ComputeIntermediate(acadType, jobNum) & "\" & jobNum & "\"
+                  ComputeSwIntermediate(swType, jobNum) & "\" & jobNum & "\"
     EnsureFolder swJobFolder
     If Not FolderExists(swJobFolder) Then
         MsgBox "Could not create SolidWorks job folder:" & vbCrLf & swJobFolder, vbExclamation
