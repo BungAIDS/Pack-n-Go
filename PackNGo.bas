@@ -6,9 +6,10 @@ Option Explicit
 ' referenced from the AutoCAD job folder's "Eng Ref" Word doc, then
 ' runs Pack-and-Go (flattened) into the SolidWorks job folder.
 
-Private Const SW_ROOT    As String = "Z:\Solidworks\Current\JOBS\"
-Private Const ACAD_ROOT  As String = "Z:\AUTOCAD\CURRENT\JOBS\"
-Private Const DOC_MARKER As String = "See file path below for original files."
+Private Const SW_ROOT      As String = "Z:\Solidworks\Current\JOBS\"
+Private Const ACAD_ROOT    As String = "Z:\AUTOCAD\CURRENT\JOBS\"
+Private Const DOC_MARKER   As String = "See file path below for original files."
+Private Const SHORTCUT_BAT As String = "Z:\DAG\SOLIDWORKS-AUTOCAD JOB FOLDER\RunJobShortcut.bat"
 
 ' SolidWorks folder name -> AutoCAD folder name
 Private Function MapAcadFolder(swType As String) As String
@@ -111,6 +112,28 @@ Private Sub EnsureFolder(p As String)
 
     On Error Resume Next
     MkDir folder
+    On Error GoTo 0
+End Sub
+
+' Hands the AutoCAD job folder to the shortcut-creator batch file
+' (the same way the user does it manually by drag-and-drop).
+Private Sub RunShortcutBat(folderPath As String)
+    If Not FileExists(SHORTCUT_BAT) Then
+        MsgBox "Shortcut helper not found:" & vbCrLf & SHORTCUT_BAT, vbExclamation
+        Exit Sub
+    End If
+
+    Dim arg As String: arg = folderPath
+    If Right$(arg, 1) = "\" Then arg = Left$(arg, Len(arg) - 1)
+
+    On Error Resume Next
+    Dim wsh As Object
+    Set wsh = CreateObject("WScript.Shell")
+    wsh.Run """" & SHORTCUT_BAT & """ """ & arg & """", 1, True
+    If Err.Number <> 0 Then
+        MsgBox "Failed to run shortcut helper:" & vbCrLf & Err.Description, vbExclamation
+        Err.Clear
+    End If
     On Error GoTo 0
 End Sub
 
@@ -282,6 +305,8 @@ Public Sub main()
     Dim title As String
     title = swModel.GetTitle
     swApp.CloseDoc title
+
+    RunShortcutBat acadJobFolder
 
     MsgBox "Pack-and-Go complete." & vbCrLf & _
            "Drawing: " & drawingBase & ".SLDDRW" & vbCrLf & _
