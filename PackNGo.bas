@@ -63,13 +63,14 @@ Private Function ComputeAcadIntermediate(acadType As String, jobNum As String) A
 End Function
 
 ' SolidWorks intermediate: HD-PFD lives in a single "40XXXX" bucket;
+' AXIAL has no intermediate at all (jobs sit directly under AXIAL\);
 ' everyone else uses a range folder on the first 3 digits.
 Private Function ComputeSwIntermediate(swType As String, jobNum As String) As String
-    If UCase$(swType) = "HD-PFD" Then
-        ComputeSwIntermediate = "40XXXX"
-    Else
-        ComputeSwIntermediate = ComputeRangeFolder(jobNum)
-    End If
+    Select Case UCase$(swType)
+        Case "HD-PFD": ComputeSwIntermediate = "40XXXX"
+        Case "AXIAL":  ComputeSwIntermediate = ""
+        Case Else:     ComputeSwIntermediate = ComputeRangeFolder(jobNum)
+    End Select
 End Function
 
 Private Function FolderExists(p As String) As Boolean
@@ -404,10 +405,12 @@ Public Sub main()
     End If
 
     ' Build SW job folder path (creating it if missing).
-    Dim swJobFolder As String, swType As String
+    ' AXIAL has no intermediate folder, so we omit it when blank.
+    Dim swJobFolder As String, swType As String, swMid As String
     swType = MapSwFolder(acadType)
-    swJobFolder = SW_ROOT & swType & "\" & _
-                  ComputeSwIntermediate(swType, jobNum) & "\" & jobNum & "\"
+    swMid = ComputeSwIntermediate(swType, jobNum)
+    If Len(swMid) > 0 Then swMid = swMid & "\"
+    swJobFolder = SW_ROOT & swType & "\" & swMid & jobNum & "\"
     EnsureFolder swJobFolder
     If Not FolderExists(swJobFolder) Then
         MsgBox "Could not create SolidWorks job folder:" & vbCrLf & swJobFolder, vbExclamation
